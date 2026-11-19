@@ -1,0 +1,42 @@
+name: Testes da API
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: digital_store_test
+      DB_USER: digital_test
+      DB_PASSWORD: senha-descartavel-do-ci
+      JWT_SECRET: segredo-descartavel-do-ci-com-mais-de-32-bytes
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: digital_store_test
+          MYSQL_USER: digital_test
+          MYSQL_PASSWORD: senha-descartavel-do-ci
+          MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysql --protocol=TCP -h 127.0.0.1 -udigital_test -psenha-descartavel-do-ci digital_store_test -e 'SELECT 1'"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run db:migrate
+      - run: npm run test:mysql
